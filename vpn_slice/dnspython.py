@@ -11,6 +11,7 @@ class DNSPythonProvider(DNSProvider):
         self.resolver = Resolver(configure=False)
         self.resolver.domain = root
         self.resolver.search_domains = [from_text(d) for d in search_domains]
+        self.resolver.nameservers = [str(a) for a in dns_servers]
 
         self.rectypes = []
         if self.bind_addresses is None or any(a.version == 4 for a in self.bind_addresses):
@@ -21,22 +22,14 @@ class DNSPythonProvider(DNSProvider):
     def lookup_host(self, hostname, keep_going=True):
         result = set()
 
-        for source in self.bind_addresses or [None]:
-            if source is None:
-                self.resolver.nameservers = self.nameservers
+        for rectype in self.rectypes:
+            try:
+                a = self.resolver.query(hostname, rectype)
+            except (NXDOMAIN, NoAnswer):
+                pass
             else:
-                self.resolver.nameservers = [str(dns) for dns in self.dns_servers if dns.version == source.version]
-                if not self.resolver.nameservers:
-                    continue
-
-            for rectype in self.rectypes:
-                try:
-                    a = self.resolver.query(hostname, rectype, source=str(source))
-                except (NXDOMAIN, NoAnswer):
-                    pass
-                else:
-                    result.update(ip_address(r.address) for r in a)
-                if result and not keep_going:
-                    return result
+                result.update(ip_address(r.address) for r in a)
+            if result and not keep_going:
+                return result
 
         return result or None
