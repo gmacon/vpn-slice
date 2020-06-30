@@ -13,7 +13,7 @@ from random import randint, choice, shuffle
 try:
     from setproctitle import setproctitle
 except ImportError:
-    def setproctitle(title):
+    def setproctitle(title: str) -> None:
         pass
 
 def tagged(iter, tag):
