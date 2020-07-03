@@ -73,7 +73,8 @@ class Environment:
     mtu = attr.ib()  # type: Optional[int]
     dns = attr.ib()  # type: AbstractSet[IPAddress]
     wins = attr.ib()  # type: AbstractSet[IPAddress]
-    splits = attr.ib()  # type: AbstractSet[IPNetwork]
+    splits_include = attr.ib()  # type: AbstractSet[IPNetwork]
+    splits_exclude = attr.ib()  # type: AbstractSet[IPNetwork]
     search_domain = attr.ib()  # type: Optional[str]
     banner = attr.ib()  # type: Optional[str]
 
@@ -107,11 +108,17 @@ class Environment:
         if "INTERNAL_IP6_DNS" in environ:
             dns.update(ip_address(a) for a in environ["INTERNAL_IP6_DNS"].split())
 
-        splits = set()  # type: Set[IPNetwork]
+        splits_include = set()  # type: Set[IPNetwork]
         if "CISCO_SPLIT_INC" in environ:
-            splits.update(get_splits("CISCO_SPLIT_INC", environ))
+            splits_include.update(get_splits("CISCO_SPLIT_INC", environ))
         if "CISCO_IPV6_SPLIT_INC" in environ:
-            splits.update(get_splits("CISCO_IPV6_SPLIT_INC", environ))
+            splits_include.update(get_splits("CISCO_IPV6_SPLIT_INC", environ))
+
+        splits_exclude = set()  # type: Set[IPNetwork]
+        if "CISCO_SPLIT_EXC" in environ:
+            splits_exclude.update(get_splits("CISCO_SPLIT_INC", environ))
+        if "CISCO_IPV6_SPLIT_EXC" in environ:
+            splits_exclude.update(get_splits("CISCO_IPV6_SPLIT_INC", environ))
 
         return cls(
             reason=Reason[environ["reason"]],
@@ -123,7 +130,8 @@ class Environment:
             wins=frozenset(
                 ip_address(a) for a in environ.get("INTERNAL_IP4_NBNS", "").split()
             ),
-            splits=frozenset(splits),
+            splits_include=frozenset(splits_include),
+            splits_exclude=frozenset(splits_exclude),
             search_domain=environ.get("CISCO_DEF_DOMAIN"),
             banner=environ.get("CISCO_BANNER"),
         )
